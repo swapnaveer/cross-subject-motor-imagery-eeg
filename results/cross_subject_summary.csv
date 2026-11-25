@@ -1,0 +1,2 @@
+participants_evaluated,total_trials,mean_subject_accuracy,sd_subject_accuracy,mean_subject_balanced_accuracy,chance_level,validation
+15,675,0.5911111111111109,0.09930978734462109,0.5848641696467783,0.5,leave-one-subject-out
