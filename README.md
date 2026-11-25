@@ -1,75 +1,64 @@
 # Cross-Subject Motor Imagery EEG Decoding
 
-## Overview
+**Research question:** Can a motor-imagery EEG decoder trained on other participants classify imagined left- versus right-fist movements in a participant excluded from training?
 
-This project explores whether EEG recordings from multiple participants can be used to classify imagined left- versus right-fist movements in a participant whose recordings were excluded from model training. The analysis uses the PhysioNet EEG Motor Movement/Imagery Database (EEGMMIDB).
+In this project, I explored whether EEG recordings from multiple participants could be used to classify imagined left- and right-hand movements in a participant whose recordings were not included during model training.
 
-This is an independent, exploratory analysis of offline EEG data. It is not a real-time brain-computer interface or a clinically validated decoder.
+Two classification approaches are compared:
 
-## Research question
+1. Common Spatial Patterns (CSP) followed by Linear Discriminant Analysis (LDA).
+2. Log-transformed mu- and beta-band power features followed by standardized Logistic Regression.
 
-Can a motor-imagery EEG decoder trained on other participants classify imagined left- versus right-fist movements in a participant excluded from training?
+Model performance is assessed using leave-one-subject-out (LOSO) validation. In each fold, all trials from one participant are held out for testing, while the remaining participants are used for model fitting.
 
-## Dataset and scope
+The analysis is an exploratory evaluation of cross-subject decoding.
 
-- Dataset: [PhysioNet EEG Motor Movement/Imagery Database (EEGMMIDB)](https://physionet.org/content/eegmmidb/1.0.0/)
-- Participants: S001–S015 (15 participants)
-- Runs: 4, 8, and 12
-- Trials: 675 total (45 per participant)
-- Sampling frequency: 160 Hz
-- Selected EEG channels: FC3, FC4, C3, Cz, C4, CP3, CP4
-- Epoch: 0–4 seconds from the task annotation
-- Preprocessing: 7–30 Hz band-pass filtering
+## 1. Data and preprocessing
 
-## Methods
+The analysis uses runs 4, 8, and 12 from the [PhysioNet EEG Motor Movement/Imagery Database (EEGMMIDB)](https://physionet.org/content/eegmmidb/1.0.0/) for participants S001–S015.
 
-Two approaches were compared:
+EEG recordings are filtered between 7 and 30 Hz, and epochs are extracted from 0 to 4 seconds relative to the task annotations. Seven channels are selected from central and adjacent sensorimotor regions: FC3, FC4, C3, Cz, C4, CP3, and CP4.
 
-1. **CSP + LDA:** Common Spatial Patterns (four components, Ledoit-Wolf regularization) followed by shrinkage Linear Discriminant Analysis.
-2. **Band-power + Logistic Regression:** Log-transformed mu (8–13 Hz) and beta (13–30 Hz) band-power features, followed by feature standardization and class-balanced Logistic Regression.
+The analysis includes 15 participants and 675 trials.
 
-Models were evaluated using **leave-one-subject-out (LOSO) cross-validation**. In each fold, all trials from one participant were held out for testing, and model fitting was performed using the remaining participants. Balanced accuracy was also calculated.
+## 2. Classification models
 
-## Results
+**CSP + LDA.** Common Spatial Patterns (CSP) identifies spatial filters that distinguish the two motor-imagery classes. The resulting features are classified using shrinkage Linear Discriminant Analysis.
 
-| Model | Mean participant-level accuracy | Mean balanced accuracy |
-|---|---:|---:|
-| CSP + LDA | 59.1% | 58.5% |
-| Band-power + Logistic Regression | 57.6% | 57.5% |
+**Band-power + Logistic Regression.** Log-transformed power is calculated for the mu (8–13 Hz) and beta (13–30 Hz) frequency bands for each selected channel. Features are standardized before classification with Logistic Regression.
 
-The difference between the approaches was small; the results do not establish a clear advantage for either model. Performance varied substantially across held-out participants. The highest CSP + LDA result was 91.1% for S007, while the mean accuracy across the other 14 participants was 56.8%.
+The feature extraction for the band-power model is performed independently for each epoch. Scaling and classifier fitting occur within the training data in each validation fold.
 
-These are exploratory results from one public dataset and a relatively small number of trials per participant. They should not be interpreted as evidence of robust generalization to new populations, recording systems, or real-time BCI use.
+## 3. Evaluation
 
-## Repository contents
+Both models are evaluated using identical participant-level folds. In each iteration, one participant is held out for testing. CSP, LDA, feature scaling, and Logistic Regression are fitted using only the remaining participants. Predictions for the held-out participant are used to calculate accuracy and balanced accuracy.
 
-- `notebooks/cross_subject_motor_imagery_analysis.ipynb` — complete analysis notebook, including preprocessing, model comparison, LOSO evaluation, plots, and interpretation.
-- `results/cross_subject_summary.csv` — model-level summary metrics.
-- `results/leave_one_subject_out_results.csv` — participant-level evaluation metrics.
+Performance is summarized using participant-level accuracy and balanced accuracy. Pooled trial-level predictions are also retained for confusion-matrix analysis.
+
+## 4. Results and limitations
+
+Across the 15 participants, CSP + LDA achieved an average accuracy of 59.1% and an average balanced accuracy of 58.5%. The band-power + Logistic Regression model achieved an average accuracy of 57.6% and balanced accuracy of 57.5%. The difference between the two approaches was small, so these results do not show a clear advantage for either model.
+
+Performance varied across participants. The highest CSP + LDA accuracy was 91.1% for participant S007. When S007 was excluded, the average CSP + LDA accuracy across the remaining 14 participants was 56.8%.
+
+The analysis used 15 participants from one publicly available dataset, with 45 trials per participant. It uses offline EEG recordings and does not demonstrate performance in a real-time brain-computer interface. The models were evaluated on one dataset only, so the results may not carry over to other datasets or groups of people.
+
+This work is an independent exploratory analysis of a publicly available EEG dataset. It evaluates offline classification performance.
+
+## 5. Files
+
+- `notebooks/cross_subject_motor_imagery_analysis.ipynb` — analysis notebook.
+- `results/cross_subject_summary.csv` — participant-level model summary.
+- `results/leave_one_subject_out_results.csv` — results for each held-out participant.
 - `results/subject_trial_counts.csv` — trial counts by participant.
 - `results/cross_subject_accuracy.png` — participant-level CSP + LDA accuracy plot.
 
-## Run the analysis
+## 6. Software and references
 
-Use Python 3.10 or later.
+The analysis uses MNE-Python for EEG data handling and preprocessing, SciPy for spectral feature extraction, and scikit-learn for model fitting and evaluation.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\\Scripts\\activate
-pip install -r requirements.txt
-jupyter lab
-```
-
-Open `notebooks/cross_subject_motor_imagery_analysis.ipynb` and run the cells in order. The notebook retrieves the EEG recordings through MNE-Python's EEGBCI dataset utilities and requires an internet connection for the initial download.
-
-## References
-
-- [PhysioNet EEGMMIDB](https://physionet.org/content/eegmmidb/1.0.0/)
-- [MNE-Python EEGBCI dataset loader](https://mne.tools/stable/generated/mne.datasets.eegbci.load_data.html)
-- [MNE-Python Common Spatial Patterns](https://mne.tools/stable/generated/mne.decoding.CSP.html)
+- [PhysioNet EEG Motor Movement/Imagery Dataset](https://physionet.org/content/eegmmidb/1.0.0/)
+- [MNE-Python EEGBCI dataset documentation](https://mne.tools/stable/generated/mne.datasets.eegbci.load_data.html)
+- [MNE-Python Common Spatial Patterns documentation](https://mne.tools/stable/generated/mne.decoding.CSP.html)
 - [scikit-learn Linear Discriminant Analysis](https://scikit-learn.org/stable/modules/lda_qda.html)
 - [scikit-learn Logistic Regression](https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression)
-
-## Disclaimer
-
-This repository contains an independent educational/research exploration using publicly available data. It is not intended for diagnosis, treatment, or clinical decision-making.
